@@ -1,3 +1,6 @@
+const snarkjs = require("snarkjs")
+const { colUser } = require("../../db/firebase")
+
 module.exports = {
     register: async(req, res) => {
         try {
