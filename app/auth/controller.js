@@ -6,16 +6,12 @@ const path = require("path")
 
 const { colUser } = require("../../db/firebase")
 
-let leaves = []
+let leaves = [
+    13652621327073936666000543602573161427486257595978168586948791791815955152507
+]
 let tree = new MerkleTree(2, leaves) // depth = 2 (sesuai circuit kamu)
 
 const vKey = JSON.parse(fs.readFileSync(path.join(__dirname, "../../zk/verification-key.json")))
-
-async function hashSecret(secret) {
-  const poseidon = await circomlib.buildPoseidon()
-  const hash = poseidon([BigInt(secret)])
-  return poseidon.F.toString(hash)
-}
 
 module.exports = {
     register: async(req, res) => {
@@ -23,17 +19,24 @@ module.exports = {
             const { secret } = req.body
 
             // hash jadi leaf
-            const leaf = await hashSecret(secret)
-
-            leaves.push(leaf)
-            tree = new MerkleTree(2, leaves)
-
-            res.json({
-            success: true,
-            leaf,
-            index: leaves.length - 1,
-            root: tree.root
+            const poseidon = await buildPoseidon()
+            const hash = poseidon([BigInt(secret)])
+            const leaf = poseidon.F.toString(hash)
+            console.log("leaf", leaf)
+            res.status(200).json({
+                success: true,
+                leaf
             })
+
+            // leaves.push(leaf)
+            // tree = new MerkleTree(2, leaves)
+
+            // res.json({
+                // success: true,
+                // leaf,
+                // index: leaves.length - 1,
+                // root: tree.root
+            // })
         } catch (error) {
             res.status(500).json({
                 status: false, 
@@ -65,8 +68,8 @@ module.exports = {
             const proof = tree.path(index)
 
             res.status(200).json({
-                proofs: proof.pathElements,
-                pathIndexes: proof.pathIndices,
+                pathElements: proof.pathElements,
+                pathIndices: proof.pathIndices,
                 root: tree.root
             })
         } catch (error) {
