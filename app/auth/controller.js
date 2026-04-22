@@ -70,7 +70,7 @@ module.exports = {
       const index = parseInt(req.params.index)
 
       if (index >= leaves.length) {
-        return res.status(400).json({ error: "Invalid index" })
+        return res.status(400).json({ status: false, message: "Invalid index" })
       }
 
       const proof = tree.path(index)
