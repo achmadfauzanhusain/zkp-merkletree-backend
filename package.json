@@ -6,6 +6,7 @@
     "start": "nodemon ./bin/www"
   },
   "dependencies": {
+    "@zk-kit/incremental-merkle-tree": "^1.1.0",
     "circomlibjs": "^0.1.7",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.6",
