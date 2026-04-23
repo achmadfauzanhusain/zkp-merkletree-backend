@@ -77,6 +77,7 @@ module.exports = {
     try {
       await initTree()
       const index = parseInt(req.params.index)
+      const leaves = await getLeavesFromDB()
 
       if (index >= leaves.length) {
         return res.status(400).json({ status: false, message: "Invalid index" })
