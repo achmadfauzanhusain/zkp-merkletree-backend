@@ -4,17 +4,26 @@ const { MerkleTree } = require("fixed-merkle-tree")
 const fs = require("fs")
 const path = require("path")
 
+const { colUser } = require("../../db/firebase.js")
+const { addDoc, getDocs, query, where } = require("firebase/firestore")
+
 const vKey = JSON.parse(fs.readFileSync(path.join(__dirname, "../../zk/verification-key.json")))
 
-let leaves = []
 let poseidon = null
 let tree = null
+
+// fetch dulu datanya dari firestore trus dijadikan array
+async function getLeavesFromDB() {
+  const snapshot = await getDocs(colUser)
+  return snapshot.docs.map(doc => doc.data().leaf)
+}
 
 async function initTree() {
   if (!poseidon) {
     poseidon = await buildPoseidon()
   }
   if (!tree) {
+    const leaves = await getLeavesFromDB()
     tree = new MerkleTree(2, leaves, {
       hashFunction: (left, right) => {
         const hash = poseidon([BigInt(left), BigInt(right)])
@@ -34,8 +43,8 @@ module.exports = {
       const hash = poseidon([BigInt(secret)])
       const leaf = poseidon.F.toString(hash)
 
-      leaves.push(leaf)
-
+      await addDoc(colUser, { leaf })
+      const leaves = await getLeavesFromDB()
       // rebuild merkle tree
       tree = new MerkleTree(2, leaves, {
         hashFunction: (left, right) => {
@@ -45,7 +54,7 @@ module.exports = {
         zeroElement: "0"
       })
 
-      res.json({
+      res.status(200).json({
         success: true,
         leaf,
         index: leaves.length - 1,
