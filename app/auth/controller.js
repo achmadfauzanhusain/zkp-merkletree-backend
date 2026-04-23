@@ -3,6 +3,8 @@ const snarkjs = require("snarkjs")
 const { MerkleTree } = require("fixed-merkle-tree")
 const fs = require("fs")
 const path = require("path")
+const jwt = require("jsonwebtoken")
+const { jwtKey } = require("../../config")
 
 const { colUser } = require("../../db/firebase.js")
 const { addDoc, getDocs, query, where } = require("firebase/firestore")
@@ -96,12 +98,28 @@ module.exports = {
   },
   login: async (req, res) => {
     try {
-      const { proof, publicSignals } = req.body
+      const { proof, publicSignals, leaf, root } = req.body
 
-      const verified = await snarkjs.groth16.verify(vKey, publicSignals, proof)
-      if (!verified) return res.json({ success: false })
+      const leaves = await getLeavesFromDB()
+      const leafExists = leaves.includes(leaf)
 
-      res.json({ success: true, message: "ZK proof valid, user is in Merkle Tree" })
+      if (!leafExists) {
+        return res.status(401).json({ success: false, message: "invalid proof" })
+        return res.status(401).json({ success: false, message: "Leaf not in tree" })
+      } else {
+        const verified = await snarkjs.groth16.verify(vKey, publicSignals, proof)
+        if (!verified) {
+          return res.status(401).json({ success: false, message: "invalid proof" })
+        } else {
+          const token = jwt.sign({
+            user: { 
+              leaf,
+              root
+            }
+          }, jwtKey)
+          res.json({ success: true, token, message: "ZK proof valid, user is in Merkle Tree" })
+        }
+      }
     } catch (err) {
       res.status(500).json({ success: false, message: "Internal Server Error!" })
     }
